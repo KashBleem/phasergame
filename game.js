@@ -1,14 +1,14 @@
 // Declare background music variable
 let backgroundMusic;
-let bird, pipes, score = 0, scoreText, gameOverText, startText, restartButton;
+let bird, pipes, score = 0, scoreText, gameOverText, startText, restartButton, debugText;
 let gameStarted = false;
 let sounds = {};
 
 // Phaser game configuration
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 400, // Reduced width
+    height: 300, // Reduced height
     scale: {
         mode: Phaser.Scale.RESIZE,
         parent: 'game-container',
@@ -23,36 +23,48 @@ const config = {
 };
 
 function preload() {
-    // Load assets
+    this.load.spritesheet('birdstatic', 'assets/spritesheet/arianastatic_spritesheet.png', {
+        frameWidth: 277,  // Adjust based on sprite sheet
+        frameHeight: 305, // Adjust based on sprite sheet
+        endFrame: 17       // Number of frames in the animation
+    });
+    this.load.spritesheet('birdfly', 'assets/spritesheet/arianafly3.png', {
+        frameWidth: 307,  // Adjust based on sprite sheet
+        frameHeight: 275, // Adjust based on sprite sheet
+        endFrame: 4       // Number of frames in the animation
+    });
+    this.load.image('background', 'assets/background_and_road.png');
     this.load.image('bird', 'assets/bird.png');
     this.load.image('pipe', 'assets/pipe.png');
-    
-    // Load sound files
     this.load.audio('jump', 'assets/jump.mp3');
     this.load.audio('point', 'assets/point.mp3');
     this.load.audio('hit', 'assets/hit.mp3');
-    this.load.audio('backgroundMusic', 'assets/bgm.mp3'); // Load background music
+    this.load.audio('backgroundMusic', 'assets/bgm.mp3');
 }
 
 function create() {
     this.input.mouse.disableContextMenu();
-    
-    // Stylish background gradient
-    const gradient = this.add.graphics();
-    const colors = [0x87CEEB, 0xE0F6FF];
-    gradient.fillGradientStyle(colors[0], colors[0], colors[1], colors[1], 1);
-    gradient.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
 
-    // Display start text with larger size
+    this.background1 = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
+    .setOrigin(0, 0)
+
+    this.anims.create({
+        key: 'playBirdStatic',
+        frames: this.anims.generateFrameNumbers('birdstatic', { start: 0, end: 16 }),
+        frameRate: 12,  // Speed of animation (adjust if needed)
+        repeat: -1      // Loop infinitely
+    });
+
     startText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 
-        'TAP TO START', { fontFamily: 'Press Start 2P', fontSize: '120px', color: '#333', stroke: '#fff', strokeThickness: 6 })
+        'TAP TO START ', { fontFamily: 'Arial', fontSize: '38px', color: '#333', stroke: '#fff', strokeThickness: 3 })
         .setOrigin(0.5);
 
-    // Stationary bird
-    bird = this.add.sprite(150, 300, 'bird').setScale(0.1);
+    bird = this.add.sprite(200, 200, 'birdstatic').setScale(0.58);
+    bird.play('playBirdStatic');
 
     pipes = this.physics.add.group();
-    scoreText = this.add.text(20, 20, 'Score: 0', { fontFamily: 'Press Start 2P', fontSize: '100px', color: '#333', stroke: '#fff', strokeThickness: 4 }).setVisible(false);
+    scoreText = this.add.text(10, 10, 'Score: 0', { fontFamily: 'Arial', fontSize: '22px', color: '#333', stroke: '#fff', strokeThickness: 2 }).setVisible(false);
+    debugText = this.add.text(10, 30, 'Bird: (x: 0, y: 0)', { fontFamily: 'Arial', fontSize: '14px', color: '#ff0000' });
 
     sounds = {
         jump: this.sound.add('jump'),
@@ -60,62 +72,59 @@ function create() {
         hit: this.sound.add('hit')
     };
 
-    // **Load background music and loop it**
     backgroundMusic = this.sound.add('backgroundMusic');
-    backgroundMusic.setLoop(true); // Loop the music
-    backgroundMusic.setVolume(0.25); // Adjust the volume (optional)
+    backgroundMusic.setLoop(true);
+    backgroundMusic.setVolume(0.25);
 
-    // Set the click event handler
     this.input.on('pointerdown', () => {
         if (!gameStarted) {
-            startGame(this); // Start the game
+            startGame(this);
         } else {
-            // Make the bird jump directly here
-            bird.setVelocityY(-300); // Make the bird jump
-            sounds.jump.play(); // Play jump sound
+            bird.setVelocityY(-150);
+            sounds.jump.play();
         }
     });
-
-    document.addEventListener('touchmove', (e) => {
-        if (e.scale !== 1) e.preventDefault();
-    }, { passive: false });
 }
 
 function startGame(scene) {
     gameStarted = true;
-    startText.destroy(); // Remove the start text
+    startText.destroy();
 
-    // Play background music when the game starts
-    backgroundMusic.stop(); // Stop any existing music and restart it
+    backgroundMusic.stop();
     backgroundMusic.play();
 
-    // Create a physics-enabled bird
     bird.destroy();
-    bird = scene.physics.add.sprite(150, 300, 'bird').setScale(0.1);
-    bird.setCollideWorldBounds(true);
-    scene.physics.world.gravity.y = 800; // Set gravity to simulate jumping
-
-    // Spawn pipes every 2 seconds
-    scene.time.addEvent({ 
-        delay: 1500, 
-        callback: spawnPipes, 
-        callbackScope: scene, 
-        loop: true 
+    
+    scene.anims.create({
+        key: 'playBirdFlap',
+        frames: scene.anims.generateFrameNumbers('birdfly', { start: 0, end: 3 }),
+        frameRate: 5,  // Speed of animation (adjust if needed)
+        repeat: -1      // Loop infinitely
     });
 
-    // Set collision detection with pipes
-    scene.physics.add.collider(bird, pipes, () => gameOver(scene));
+    bird = scene.physics.add.sprite(75, 150, 'birdfly').setScale(0.3);
+    bird.play('playBirdFlap');
 
-    // Show score text
+    bird.setSize(190, 250);  // Adjust width and height as needed
+    bird.setOffset(20, 10); // Move the hitbox to better align with the visible part
+
+    bird.setCollideWorldBounds(true);
+    scene.physics.world.gravity.y = 400;
+
+    scene.time.addEvent({ delay: 1750, callback: spawnPipes, callbackScope: scene, loop: true });
+    scene.physics.add.collider(bird, pipes, () => gameOver(scene));
     scoreText.setVisible(true);
 }
 
 function update() {
-    if (gameStarted && bird && (bird.y > this.cameras.main.height || bird.y < 10)) {
-        gameOver(this); // End game if the bird hits the floor
+    if (gameStarted) {
+        this.background1.tilePositionX += 1.5; // Moves the background
+        debugText.setText(`Bird: (x: ${Math.round(bird.x)}, y: ${Math.round(bird.y)})`);
+        if (bird.y >= 570) {
+            gameOver(this);
+        }
     }
 
-    // Score update: Check if pipes have been passed
     pipes.getChildren().forEach(pipe => {
         if (!pipe.passed && pipe.x < bird.x) {
             pipe.passed = true;
@@ -126,26 +135,17 @@ function update() {
 
 function spawnPipes() {
     if (!gameStarted) return;
+    const pipeGap = 200;
+    const pipeTopY = Phaser.Math.Between(150, 450);
 
-    const pipeGap = 300;
-    const pipeTopY = Phaser.Math.Between(100, 400);
+    let topPipe = pipes.create(600, pipeTopY - pipeGap / 2, 'pipe').setOrigin(0, 1).setFlipY(true).setScale(0.7);
+    let bottomPipe = pipes.create(600, pipeTopY + pipeGap / 2, 'pipe').setOrigin(0, 0).setScale(0.7);
 
-    let topPipe = pipes.create(1200, pipeTopY - pipeGap / 2, 'pipe')
-        .setOrigin(0, 1)
-        .setFlipY(true)
-        .setScale(1);
-
-    let bottomPipe = pipes.create(1200, pipeTopY + pipeGap / 2, 'pipe')
-        .setOrigin(0, 0)
-        .setScale(1);
-
-    pipes.setVelocityX(-200);
-
+    pipes.setVelocityX(-120);
     topPipe.setImmovable(true);
     bottomPipe.setImmovable(true);
     topPipe.body.allowGravity = false;
     bottomPipe.body.allowGravity = false;
-
     topPipe.passed = false;
     bottomPipe.passed = false;
 }
@@ -161,40 +161,22 @@ function gameOver(scene) {
     bird.setTint(0xff0000);
     gameStarted = false;
     sounds.hit.play();
-    backgroundMusic.stop(); // Stop the background music when the game ends
-
-    const fontConfig = {
-        fontFamily: 'Press Start 2P',
-        fontSize: '200px', // Increased size for game over text
-        color: '#ff0000',
-        stroke: '#fff',
-        strokeThickness: 6
-    };
+    backgroundMusic.stop();
 
     gameOverText = scene.add.text(
         scene.cameras.main.centerX, 
         scene.cameras.main.centerY, 
-        'GAME OVER', 
-        fontConfig
+        'GAME OVER WTF', 
+        { fontFamily: 'Arial', fontSize: '40px', color: '#ff0000', stroke: '#fff', strokeThickness: 3 }
     ).setOrigin(0.5);
-
-    const restartConfig = {
-        fontFamily: 'Press Start 2P',
-        fontSize: '180px', // Increased size for restart text
-        color: '#333',
-        stroke: '#fff',
-        strokeThickness: 4
-    };
 
     restartButton = scene.add.text(
         scene.cameras.main.centerX, 
-        scene.cameras.main.centerY + 100, 
+        scene.cameras.main.centerY + 50, 
         'TAP TO RESTART', 
-        restartConfig
-    )
-    .setOrigin(0.5);
+        { fontFamily: 'Arial', fontSize: '40px', color: '#333', stroke: '#fff', strokeThickness: 2 }
+    ).setOrigin(0.5);
 
-    // Allow restarting by clicking anywhere
     scene.input.once('pointerdown', () => restartGame(scene));
 }
 
@@ -202,14 +184,7 @@ function restartGame(scene) {
     scene.scene.restart();
     score = 0;
     gameStarted = false;
-    backgroundMusic.stop(); // Stop music and reset before restarting
+    backgroundMusic.stop();
 }
 
-// Add Google Font link for Press Start 2P
-const link = document.createElement('link');
-link.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
-link.rel = 'stylesheet';
-document.head.appendChild(link);
-
-// Create a new Phaser game instance with the `config` object
 new Phaser.Game(config);
