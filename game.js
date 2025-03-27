@@ -1,10 +1,8 @@
-// Declare background music variable
 let backgroundMusic;
 let bird, pipes, score = 0, scoreText, gameOverText, startText, restartButton, debugText;
 let gameStarted = false;
 let sounds = {};
 
-// Phaser game configuration
 const config = {
     type: Phaser.AUTO,
     width: 400, // Reduced width
@@ -26,7 +24,7 @@ function preload() {
     this.load.spritesheet('birdstatic', 'assets/spritesheet/arianastatic_spritesheet.png', {
         frameWidth: 277,  // Adjust based on sprite sheet
         frameHeight: 305, // Adjust based on sprite sheet
-        endFrame: 17       // Number of frames in the animation
+        endFrame: 17      // Number of frames in the animation
     });
     this.load.spritesheet('birdfly', 'assets/spritesheet/arianafly3.png', {
         frameWidth: 307,  // Adjust based on sprite sheet
@@ -39,6 +37,7 @@ function preload() {
     this.load.audio('jump', 'assets/jump.mp3');
     this.load.audio('point', 'assets/point.mp3');
     this.load.audio('hit', 'assets/hit.mp3');
+    this.load.audio('gameover', 'assets/gameover.mp3');
     this.load.audio('backgroundMusic', 'assets/bgm.mp3');
 }
 
@@ -64,17 +63,18 @@ function create() {
 
     pipes = this.physics.add.group();
     scoreText = this.add.text(10, 10, 'Score: 0', { fontFamily: 'Arial', fontSize: '22px', color: '#333', stroke: '#fff', strokeThickness: 2 }).setVisible(false);
-    debugText = this.add.text(10, 30, 'Bird: (x: 0, y: 0)', { fontFamily: 'Arial', fontSize: '14px', color: '#ff0000' });
+    //debugText = this.add.text(10, 30, 'Bird: (x: 0, y: 0)', { fontFamily: 'Arial', fontSize: '14px', color: '#ff0000' });
 
     sounds = {
-        jump: this.sound.add('jump'),
-        point: this.sound.add('point'),
-        hit: this.sound.add('hit')
+        jump: this.sound.add('jump', { volume: 0.1 }),  // Lower jump sound
+        point: this.sound.add('point', { volume: 0.1 }), // Lower score sound
+        hit: this.sound.add('hit', { volume: 0.1 }),  // Lower hit sound
+        gameOver: this.sound.add('gameover', { volume: 0.7 })
     };
 
     backgroundMusic = this.sound.add('backgroundMusic');
     backgroundMusic.setLoop(true);
-    backgroundMusic.setVolume(0.25);
+    backgroundMusic.setVolume(0.15);
 
     this.input.on('pointerdown', () => {
         if (!gameStarted) {
@@ -119,8 +119,8 @@ function startGame(scene) {
 function update() {
     if (gameStarted) {
         this.background1.tilePositionX += 1.5; // Moves the background
-        debugText.setText(`Bird: (x: ${Math.round(bird.x)}, y: ${Math.round(bird.y)})`);
-        if (bird.y >= 570) {
+        //debugText.setText(`Bird: (x: ${Math.round(bird.x)}, y: ${Math.round(bird.y)})`);
+        if (bird.y >= 563) {
             gameOver(this);
         }
     }
@@ -160,7 +160,7 @@ function gameOver(scene) {
     scene.physics.pause();
     bird.setTint(0xff0000);
     gameStarted = false;
-    sounds.hit.play();
+    sounds.gameOver.play();
     backgroundMusic.stop();
 
     gameOverText = scene.add.text(
