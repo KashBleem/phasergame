@@ -163,6 +163,8 @@ function gameOver(scene) {
     sounds.gameOver.play();
     backgroundMusic.stop();
 
+    scene.input.enabled = false;
+
     gameOverText = scene.add.text(
         scene.cameras.main.centerX, 
         scene.cameras.main.centerY, 
@@ -177,7 +179,10 @@ function gameOver(scene) {
         { fontFamily: 'Arial', fontSize: '40px', color: '#333', stroke: '#fff', strokeThickness: 2 }
     ).setOrigin(0.5);
 
-    scene.input.once('pointerdown', () => restartGame(scene));
+    scene.time.delayedCall(1000, () => {
+        scene.input.enabled = true;
+        scene.input.once('pointerdown', () => restartGame(scene));
+    });
 }
 
 function restartGame(scene) {
